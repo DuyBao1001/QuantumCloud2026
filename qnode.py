@@ -12,7 +12,6 @@ import pandas as pd
 # --- Thư viện tự viết của QCloudSim ---
 # (Đảm bảo ông đã copy thư mục 'utility_functions' của họ vào dự án nhé)
 from utility_functions.graph_manipulation import *
-
 class BaseQNode(ABC):
     """
     Abstract base class for quantum devices.
