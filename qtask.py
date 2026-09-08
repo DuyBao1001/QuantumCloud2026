@@ -1,5 +1,5 @@
-class QJob:
-    def __init__(self, job_id,
+class QTask:
+    def __init__(self, task_id,
                  num_qubits,
                  depth,
                  num_shots,
@@ -8,7 +8,7 @@ class QJob:
                  circuit_name=None,
                  gates=None):
 
-        self.job_id = job_id
+        self.task_id = task_id
         self.circuit_name = circuit_name
         self.num_qubits = num_qubits
         self.depth = depth
