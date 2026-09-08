@@ -1,4 +1,19 @@
-class BaseQDevice(ABC):
+import os
+import json
+import math
+import random
+from abc import ABC, abstractmethod
+
+# --- Thư viện bên thứ 3 (Bắt buộc phải pip install) ---
+import simpy
+import networkx as nx
+import pandas as pd
+
+# --- Thư viện tự viết của QCloudSim ---
+# (Đảm bảo ông đã copy thư mục 'utility_functions' của họ vào dự án nhé)
+from utility_functions.graph_manipulation import *
+
+class BaseQNode(ABC):
     """
     Abstract base class for quantum devices.
     """
@@ -16,7 +31,7 @@ class BaseQDevice(ABC):
         self.event_bus = event_bus
 
     @abstractmethod
-    def process_job(self, job_id, qubits_required):
+    def process_task(self, job_id, qubits_required):
         """
         Abstract method for processing a job on the device.
         """
@@ -37,7 +52,7 @@ class BaseQDevice(ABC):
         pass
     
 
-class QuantumDevice(BaseQDevice):
+class QuantumDevice(BaseQNode):
     """
     QuantumDevice is a class representing a quantum computing device with a specific topology.
 

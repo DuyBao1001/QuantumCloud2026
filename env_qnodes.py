@@ -1,4 +1,5 @@
 from qnode import IBM_QuantumDevice
+from qnode import QuantumDevice
 class IBM_guadalupe(IBM_QuantumDevice):
     """
     IBM Guadalupe is one of IBM's quantum processors based on superconducting qubits.
