@@ -1,0 +1,13 @@
+simpy
+scikit-learn
+mypy
+pytest
+qiskit
+numpy
+pandas
+gymnasium
+cirq
+tensorflow==2.15.0
+types-tensorflow
+tensorflow-quantum
+tqdm
