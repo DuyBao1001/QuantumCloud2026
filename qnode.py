@@ -30,9 +30,9 @@ class BaseQNode(ABC):
         self.event_bus = event_bus
 
     @abstractmethod
-    def process_task(self, job_id, qubits_required):
+    def process_task(self, task_id, qubits_required):
         """
-        Abstract method for processing a job on the device.
+        Abstract method for processing a task on the device.
         """
         pass
 
@@ -46,7 +46,7 @@ class BaseQNode(ABC):
     @abstractmethod
     def calculate_process_time(self, qubits_required):
         """
-        Abstract method to calculate the processing time for a job.
+        Abstract method to calculate the processing time for a task.
         """
         pass
     
@@ -175,67 +175,67 @@ class QuantumDevice(BaseQNode):
                     # Job will be able to assign the machine again
                     self.maint_lock = False
             
-    def calculate_process_time(self, job):
+    def calculate_process_time(self, task):
         """Simple way to calculate the processing time based on the number of qubits required.
             Child class will override this"""
         if self.printlog:
-            print(f"{self.env.now:.2f}: Calculating process time for {job.num_qubits} qubits on {self.name}.")
-        return job.num_qubits * 100
+            print(f"{self.env.now:.2f}: Calculating process time for {task.num_qubits} qubits on {self.name}.")
+        return task.num_qubits * 100
 
-    def process_job(self, job, wait_time_start):
+    def process_task(self, task, wait_time_start):
         
-        job_id = job.job_id
-        qubits_required = job.num_qubits
-        """Process a job on this quantum device."""
+        task_id = task.task_id
+        qubits_required = task.num_qubits
+        """Process a task on this quantum device."""
         if self.printlog:
-            print(f"{self.env.now:.2f}: {self.name} received job #{job_id} requiring {qubits_required} qubits.")
+            print(f"{self.env.now:.2f}: {self.name} received task #{task_id} requiring {qubits_required} qubits.")
         
-        # Log job start processing
-        self.job_records_manager.log_job_event(job_id, 'devc_name', self.name)
-        self.job_records_manager.log_job_event(job_id, 'devc_start', round(self.env.now,4))
+        # Log task start processing
+        # self.job_records_manager.log_job_event(task_id, 'devc_name', self.name)
+        # self.job_records_manager.log_job_event(task_id, 'devc_start', round(self.env.now,4))
         
-        # Publish a 'device_start' event
-        self.event_bus.publish("device_start", {
-            "device": self.name,
-            "job_id": job_id,
-            "timestamp": round(self.env.now, 2),
-        })
+        # # Publish a 'device_start' event
+        # self.event_bus.publish("device_start", {
+        #     "device": self.name,
+        #     "job_id": task_id,
+        #     "timestamp": round(self.env.now, 2),
+        # })
         
-        selected_vertices = select_vertices_fast(self, qubits_required, job_id)
+        selected_vertices = select_vertices_fast(self, qubits_required, task_id)
 
         while selected_vertices is None or self.maint_lock:
             if self.printlog:
-                print(f"{self.env.now:.2f}: Job #{job_id} is waiting for {self.name}.")
+                print(f"{self.env.now:.2f}: Task #{task_id} is waiting for {self.name}.")
             yield self.env.timeout(1)  # Wait before retrying
-            selected_vertices = select_vertices_fast(self, qubits_required, job_id)
+            selected_vertices = select_vertices_fast(self, qubits_required, task_id)
 
         remove_connectivity(self, selected_vertices, 'red')
 
         
-        process_time = self.calculate_process_time(job)
+        process_time = self.calculate_process_time(task)
         if self.printlog:
-            print(f"{self.env.now:.2f}: Job #{job_id} will take {process_time:.4f} sim-mins on {self.name}.")
+            print(f"{self.env.now:.2f}: Task #{task_id} will take {process_time:.4f} sim-mins on {self.name}.")
         
         yield self.env.timeout(process_time)
         
 
-        # Log job finish processing
-        self.job_records_manager.log_job_event(job_id, 'devc_finish', round(self.env.now,4))
+        # Log task finish processing
+        # self.task_records_manager.log_task_event(task_id, 'devc_finish', round(self.env.now,4))
         
         
-        # Publish a 'device_finish' event
-        self.event_bus.publish("device_finish", {
-            "device": self.name,
-            "job_id": job_id,
-            "timestamp": round(self.env.now, 2),
-        })
+        # # Publish a 'device_finish' event
+        # self.event_bus.publish("device_finish", {
+        #     "device": self.name,
+        #     "job_id": task_id,
+        #     "timestamp": round(self.env.now, 2),
+        # })
         
         yield self.container.put(qubits_required)
         reconnect_nodes(self, selected_vertices)
         if self.printlog:
-            print(f"{self.env.now:.2f}: Job #{job_id} completed on {self.name}.")
+            print(f"{self.env.now:.2f}: Task #{task_id} completed on {self.name}.")
     
-    def estimate_fidelity(self, job):
+    def estimate_fidelity(self, task):
         pass
             
 class IBM_QuantumDevice(QuantumDevice):
@@ -256,13 +256,13 @@ class IBM_QuantumDevice(QuantumDevice):
         self.printlog = printlog
         self.readout_errors, self.single_qubit_gate_errors, self.two_qubit_gate_errors = self.extract_errors_from_csv()
 
-    def calculate_process_time(self, job):
+    def calculate_process_time(self, task):
         """
         Calculate processing time considering IBM-specific metrics.
         """
         M = 100
         K = 10
-        S = job.num_shots
+        S = task.num_shots
         D = math.log2(self.qvol)
 
         return  M * K * S * D / self.clops / 60
@@ -293,12 +293,12 @@ class IBM_QuantumDevice(QuantumDevice):
 
         return readout_errors, single_qubit_gate_errors, two_qubit_gate_errors
 
-    def estimate_fidelity(self, job):
+    def estimate_fidelity(self, task):
         """
-        Estimate fidelity for a quantum job using IBM calibration data.
+        Estimate fidelity for a quantum task using IBM calibration data.
         """
-        num_qubits = job.num_qubits
-        depth = job.depth
+        num_qubits = task.num_qubits
+        depth = task.depth
 
         # Estimate single-qubit gate fidelity
         avg_single_qubit_error = self.single_qubit_gate_errors["rx"]
@@ -310,5 +310,5 @@ class IBM_QuantumDevice(QuantumDevice):
 
         # Combined fidelity
         estimated_fidelity = single_qubit_fidelity * readout_fidelity
-        self.job_records_manager.log_job_event(job.job_id, 'fidelity', round(estimated_fidelity,4))   
+        # self.task_records_manager.log_task_event(task.task_id, 'fidelity', round(estimated_fidelity,4))   
         return estimated_fidelity
