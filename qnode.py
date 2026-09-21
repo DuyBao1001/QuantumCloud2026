@@ -4,14 +4,12 @@ import math
 import random
 from abc import ABC, abstractmethod
 
-# --- Thư viện bên thứ 3 (Bắt buộc phải pip install) ---
 import simpy
 import networkx as nx
 import pandas as pd
 
-# --- Thư viện tự viết của QCloudSim ---
-# (Đảm bảo ông đã copy thư mục 'utility_functions' của họ vào dự án nhé)
 from utility_functions.graph_manipulation import *
+
 class BaseQNode(ABC):
     """
     Abstract base class for quantum devices.
@@ -30,7 +28,7 @@ class BaseQNode(ABC):
         self.event_bus = event_bus
 
     @abstractmethod
-    def process_task(self, task_id, qubits_required):
+    def process_task(self, task, wait_time_start=0):
         """
         Abstract method for processing a task on the device.
         """
@@ -44,7 +42,7 @@ class BaseQNode(ABC):
         pass
 
     @abstractmethod
-    def calculate_process_time(self, qubits_required):
+    def calculate_process_time(self, task):
         """
         Abstract method to calculate the processing time for a task.
         """
@@ -54,52 +52,15 @@ class BaseQNode(ABC):
 class QuantumDevice(BaseQNode):
     """
     QuantumDevice is a class representing a quantum computing device with a specific topology.
-
-    Attributes:
-    -----------
-    name : str
-        The name of the quantum device.
-    nodes_file_name : str
-            File name that contains a list of nodes representing the connections between qubits in JSON format.
-        pos_file_name : str
-            File name that contains a dictionary representing the positions of the qubits for visualization purposes in JSON format.
-    color_map : list
-        A list of color representing the color of nodes. 
-    number_of_qubits: int
-        An integer representing the number of physical qubits available.
-    env : simpy.Environment
-        The simulation environment.
-    container : simpy.Container
-        A container in simpy to manage resources.
-    resource : simpy.Resource
-        A resource manager in simpy for handling shared resources.
     """
 
-    def __init__(self, name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, event_bus=None, job_records_manager=None, printlog=True):
-        """
-        Initializes the QuantumDevice with a name, nodes, and positions.
-
-        Parameters:
-        -----------
-        name : str
-            The name of the quantum device.
-        nodes_file_name : str
-            File name that contains a list of nodes representing the connections between qubits in JSON format.
-        pos_file_name : str
-            File name that contains a dictionary representing the positions of the qubits for visualization purposes in JSON format.
-        color_map : list
-            A list of color representing the color of nodes. 
-        number_of_qubits: int
-            An integer representing the number of physical qubits available.
-        env : simpy.Environment
-            The simulation environment.
-        """
+    def __init__(self, name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, event_bus=None, task_records_manager=None, printlog=True):
         self.name = name
-        self.env = None     # simpy simulation environment
+        self.env = env    
         self.maintenance_interval = maintenance_interval
         self.maintenance_duration = maintenance_duration
         self.maintenance_switch = maintenance_switch
-        self.job_records_manager = job_records_manager
+        self.task_records_manager = task_records_manager
         self.event_bus = event_bus
         self.printlog = printlog
 
@@ -118,7 +79,7 @@ class QuantumDevice(BaseQNode):
         
         # Initialize the simpy container and resource
         self.container = simpy.Container(env=self.env, capacity=len(self.pos), init=len(self.pos))
-        self.resource = simpy.PriorityResource(env=env, capacity=1)
+        self.resource = simpy.PriorityResource(env=self.env, capacity=1)
         self.maint_lock = False
         
     def assign_env(self, env):
@@ -151,7 +112,7 @@ class QuantumDevice(BaseQNode):
         
         return nodes, pos
     
-    def maintenance(self, maintenance_switch):
+    def maintenance(self): 
         """
         Maintenance process that will run at regular intervals.
         The interval and duration of maintenance are set by the child class.
@@ -163,7 +124,7 @@ class QuantumDevice(BaseQNode):
                 # Wait for the maintenance interval
                 yield self.env.timeout(self.maintenance_interval)
                              
-                # New job won't be able to process on the machine
+                # New task won't be able to process on the machine
                 self.maint_lock = True
                 
                 # Block the resource during maintenance with highest priority (priority=1)
@@ -172,7 +133,7 @@ class QuantumDevice(BaseQNode):
                     remaining_qubits = self.container.level                                                   
                     yield self.env.timeout(self.maintenance_duration)
 
-                    # Job will be able to assign the machine again
+                    # task will be able to assign the machine again
                     self.maint_lock = False
             
     def calculate_process_time(self, task):
@@ -182,24 +143,26 @@ class QuantumDevice(BaseQNode):
             print(f"{self.env.now:.2f}: Calculating process time for {task.num_qubits} qubits on {self.name}.")
         return task.num_qubits * 100
 
-    def process_task(self, task, wait_time_start):
+    def process_task(self, task, wait_time_start=0): 
         
-        task_id = task.task_id
+        task_id = task.task_id 
         qubits_required = task.num_qubits
         """Process a task on this quantum device."""
         if self.printlog:
             print(f"{self.env.now:.2f}: {self.name} received task #{task_id} requiring {qubits_required} qubits.")
         
         # Log task start processing
-        # self.job_records_manager.log_job_event(task_id, 'devc_name', self.name)
-        # self.job_records_manager.log_job_event(task_id, 'devc_start', round(self.env.now,4))
+        if self.task_records_manager:
+            self.task_records_manager.log_task_event(task_id, 'devc_name', self.name)
+            self.task_records_manager.log_task_event(task_id, 'devc_start', round(self.env.now,4))
         
-        # # Publish a 'device_start' event
-        # self.event_bus.publish("device_start", {
-        #     "device": self.name,
-        #     "job_id": task_id,
-        #     "timestamp": round(self.env.now, 2),
-        # })
+        # Publish a 'device_start' event
+        if self.event_bus:
+            self.event_bus.publish("device_start", {
+                "device": self.name,
+                "task_id": task_id,
+                "timestamp": round(self.env.now, 2),
+            })
         
         selected_vertices = select_vertices_fast(self, qubits_required, task_id)
 
@@ -220,15 +183,17 @@ class QuantumDevice(BaseQNode):
         
 
         # Log task finish processing
-        # self.task_records_manager.log_task_event(task_id, 'devc_finish', round(self.env.now,4))
+        if self.task_records_manager:
+            self.task_records_manager.log_task_event(task_id, 'devc_finish', round(self.env.now,4))
         
         
-        # # Publish a 'device_finish' event
-        # self.event_bus.publish("device_finish", {
-        #     "device": self.name,
-        #     "job_id": task_id,
-        #     "timestamp": round(self.env.now, 2),
-        # })
+        # Publish a 'device_finish' event
+        if self.event_bus:
+            self.event_bus.publish("device_finish", {
+                "device": self.name,
+                "task_id": task_id,
+                "timestamp": round(self.env.now, 2),
+            })
         
         yield self.container.put(qubits_required)
         reconnect_nodes(self, selected_vertices)
@@ -243,8 +208,20 @@ class IBM_QuantumDevice(QuantumDevice):
     A base class for IBM quantum devices that defines common attributes.
     """
 
-    def __init__(self, name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, clops, qvol, median_T1, median_T2, processor_type, cali_filepath=None, printlog=True):
-        super().__init__(name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, printlog)
+    def __init__(self, name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, clops, qvol, median_T1, median_T2, processor_type, event_bus=None, task_records_manager=None, cali_filepath=None, printlog=True):
+        
+        super().__init__(
+            name=name,
+            nodes_file_name=nodes_file_name,
+            pos_file_name=pos_file_name,
+            env=env,
+            maintenance_interval=maintenance_interval,
+            maintenance_duration=maintenance_duration,
+            maintenance_switch=maintenance_switch,
+            event_bus=event_bus,
+            task_records_manager=task_records_manager,
+            printlog=printlog
+        )
         
         # IBM-specific attributes
         self.clops = clops  # Circuit Layer Operations Per Second
@@ -271,7 +248,6 @@ class IBM_QuantumDevice(QuantumDevice):
         """
         Extract errors specific to IBM devices from calibration data.
         """
-        # file_path = 'QCloud/calibration/ibm_fez_calibrations_2025-01-13T16_54_24Z.csv'
         if self.cali_filepath is None: 
             self.cali_filepath = 'QCloud/calibration/ibm_fez_calibrations_2025-01-13T16_54_24Z.csv'
             
@@ -310,5 +286,7 @@ class IBM_QuantumDevice(QuantumDevice):
 
         # Combined fidelity
         estimated_fidelity = single_qubit_fidelity * readout_fidelity
-        # self.task_records_manager.log_task_event(task.task_id, 'fidelity', round(estimated_fidelity,4))   
+        
+        if hasattr(self, 'task_records_manager') and self.task_records_manager:
+            self.task_records_manager.log_task_event(task.task_id, 'fidelity', round(estimated_fidelity,4))   
         return estimated_fidelity
