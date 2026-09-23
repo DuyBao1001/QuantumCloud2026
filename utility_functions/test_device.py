@@ -7,7 +7,8 @@ sys.path.append(module_path)
 
 import unittest
 import simpy
-from devices import QuantumDevice, IBM_guadalupe, IBM_tokyo  # Import your quantum device classes
+from qnode import QuantumDevice
+from env_qnodes import IBM_guadalupe, IBM_tokyo
 
 # The function to be tested
 def has_reversed_pair(data):

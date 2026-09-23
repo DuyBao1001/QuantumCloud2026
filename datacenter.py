@@ -86,7 +86,7 @@ class Datacenter:
 
     def available_qnodes(self):
         """
-        QNode co the nhan task ngay bay gio, thoa CA HAI dieu kien:
+        QNode co the nhan task ngay bay gio, thoa ca hai dieu kien:
         - Datacenter khong bi bao tri toan cuc.
         - Ban than QNode khong bi maint_lock rieng (thuoc tinh co san trong
           qnode.QuantumDevice).

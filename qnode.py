@@ -55,6 +55,7 @@ class QuantumDevice(BaseQNode):
     """
 
     def __init__(self, name, nodes_file_name, pos_file_name, env, maintenance_interval, maintenance_duration, maintenance_switch, event_bus=None, task_records_manager=None, printlog=True):
+        super().__init__(name=name, env=env, event_bus=event_bus)
         self.name = name
         self.env = env    
         self.maintenance_interval = maintenance_interval
@@ -172,8 +173,12 @@ class QuantumDevice(BaseQNode):
             yield self.env.timeout(1)  # Wait before retrying
             selected_vertices = select_vertices_fast(self, qubits_required, task_id)
 
+        yield self.container.get(qubits_required)
         remove_connectivity(self, selected_vertices, 'red')
 
+        task.start_time = self.env.now
+        task.assigned_device = self.name
+        task.assigned_qubits = list(selected_vertices)
         
         process_time = self.calculate_process_time(task)
         if self.printlog:
@@ -194,6 +199,9 @@ class QuantumDevice(BaseQNode):
                 "task_id": task_id,
                 "timestamp": round(self.env.now, 2),
             })
+        
+        task.finish_time = self.env.now
+        task.qpu_time = process_time
         
         yield self.container.put(qubits_required)
         reconnect_nodes(self, selected_vertices)
@@ -248,24 +256,54 @@ class IBM_QuantumDevice(QuantumDevice):
         """
         Extract errors specific to IBM devices from calibration data.
         """
-        if self.cali_filepath is None: 
-            self.cali_filepath = 'QCloud/calibration/ibm_fez_calibrations_2025-01-13T16_54_24Z.csv'
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        cali_dir = os.path.join(current_dir, 'calibration')
+        
+        if self.cali_filepath is None:
+            # Try to auto-match calibration file based on device name
+            matched_file = 'ibm_fez_calibrations_2025-01-13T16_54_24Z.csv' # Fallback
+            device_id = self.__class__.__name__.lower().replace("ibm_", "")
+            if os.path.exists(cali_dir):
+                for fname in os.listdir(cali_dir):
+                    if device_id in fname and fname.endswith(".csv"):
+                        matched_file = fname
+                        break
+            file_path = os.path.join(cali_dir, matched_file)
+        else:
+            # Handle old hardcoded paths gracefully
+            if "QCloud/calibration" in self.cali_filepath:
+                fname = os.path.basename(self.cali_filepath)
+                file_path = os.path.join(cali_dir, fname)
+            else:
+                file_path = self.cali_filepath
             
-        file_path = self.cali_filepath
         calibration_data = pd.read_csv(file_path)
         calibration_data.columns = calibration_data.columns.str.strip()
 
-        readout_errors = calibration_data["Readout assignment error"].tolist()
+        readout_errors = []
+        if "Readout assignment error" in calibration_data.columns:
+            readout_errors = calibration_data["Readout assignment error"].dropna().tolist()
+
+        rx_col = next((c for c in ["RX error", "√x (sx) error", "SX error", "Pauli-X error"] if c in calibration_data.columns), None)
+        x_col = next((c for c in ["Pauli-X error", "x error"] if c in calibration_data.columns), None)
+        
         single_qubit_gate_errors = {
-            "rx": calibration_data["RX error"].mean(),
-            "x": calibration_data["Pauli-X error"].mean(),
+            "rx": calibration_data[rx_col].mean() if rx_col else 0.001,
+            "x": calibration_data[x_col].mean() if x_col else 0.001,
         }
+
         two_qubit_gate_errors = {}
-        for cz_errors in calibration_data["CZ error"]:
-            pairs = cz_errors.split(";")
-            for pair in pairs:
-                gate, error = pair.split(":")
-                two_qubit_gate_errors[gate] = float(error)
+        two_q_col = next((c for c in ["CZ error", "ECR error"] if c in calibration_data.columns), None)
+        if two_q_col:
+            for gate_errors in calibration_data[two_q_col].dropna():
+                pairs = str(gate_errors).split(";")
+                for pair in pairs:
+                    if ":" in pair:
+                        gate, error = pair.split(":")
+                        try:
+                            two_qubit_gate_errors[gate.strip()] = float(error.strip())
+                        except ValueError:
+                            pass
 
         return readout_errors, single_qubit_gate_errors, two_qubit_gate_errors
 
@@ -276,16 +314,18 @@ class IBM_QuantumDevice(QuantumDevice):
         num_qubits = task.num_qubits
         depth = task.depth
 
-        # Estimate single-qubit gate fidelity
-        avg_single_qubit_error = self.single_qubit_gate_errors["rx"]
+        # Estimate single-qubit gate fidelity safely
+        avg_single_qubit_error = self.single_qubit_gate_errors.get("rx", 0.001)
         single_qubit_fidelity = (1 - avg_single_qubit_error) ** depth
 
-        # Estimate readout fidelity
-        avg_readout_error = sum(self.readout_errors) / len(self.readout_errors)
+        # Estimate readout fidelity safely
+        avg_readout_error = sum(self.readout_errors) / len(self.readout_errors) if self.readout_errors else 0.01
         readout_fidelity = (1 - avg_readout_error) ** num_qubits
 
         # Combined fidelity
         estimated_fidelity = single_qubit_fidelity * readout_fidelity
+        
+        task.estimated_fidelity = estimated_fidelity
         
         if hasattr(self, 'task_records_manager') and self.task_records_manager:
             self.task_records_manager.log_task_event(task.task_id, 'fidelity', round(estimated_fidelity,4))   

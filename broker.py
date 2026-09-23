@@ -19,8 +19,10 @@ class BaseBroker(ABC):
     #Bổ sung hàm nhận Task từ Generator
     def receive_task(self, task):
         self.task_queue.append(task)
-        # Mỗi khi có task mới, đánh thức vòng lặp run()
-        self.env.process(self.run())
+        # Chỉ đánh thức vòng lặp run() nếu nó chưa chạy
+        if not getattr(self, 'is_running', False):
+            self.is_running = True
+            self.env.process(self.run())
 
     @abstractmethod
     def assign_device(self, task): 
@@ -70,6 +72,8 @@ class SerialBroker(BaseBroker):
                 yield req
                 # --- THAY ĐỔI 9: Gọi process_task thay vì process_job ---
                 yield self.env.process(device.process_task(current_task, self.env.now))
+                
+        self.is_running = False
 
             
 class ParallelBroker(BaseBroker):
@@ -110,3 +114,5 @@ class ParallelBroker(BaseBroker):
             
             # Nhịp nghỉ mô phỏng để SimPy không bị treo vòng lặp
             yield self.env.timeout(0.1)
+
+        self.is_running = False
