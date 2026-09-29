@@ -309,21 +309,39 @@ class IBM_QuantumDevice(QuantumDevice):
 
     def estimate_fidelity(self, task):
         """
-        Estimate fidelity for a quantum task using IBM calibration data.
+        Estimate fidelity for a quantum task using IBM calibration data and precise gate counts.
         """
-        num_qubits = task.num_qubits
-        depth = task.depth
+        # Trích xuất profile số lượng cổng (từ phiên bản task_generator mới)
+        gates_profile = getattr(task, 'gates', {})
+        
+        # Nếu task được sinh từ generator cũ không có dictionary gates, dùng fallback xấp xỉ
+        if not isinstance(gates_profile, dict):
+            num_1q = task.depth * task.num_qubits * 0.5
+            num_2q = task.depth * task.num_qubits * 0.1
+            num_meas = task.num_qubits
+        else:
+            num_1q = gates_profile.get("1q_gates", task.depth * task.num_qubits * 0.5)
+            num_2q = gates_profile.get("2q_gates", task.depth * task.num_qubits * 0.1)
+            num_meas = gates_profile.get("measurements", task.num_qubits)
 
-        # Estimate single-qubit gate fidelity safely
-        avg_single_qubit_error = self.single_qubit_gate_errors.get("rx", 0.001)
-        single_qubit_fidelity = (1 - avg_single_qubit_error) ** depth
+        # 1. Single-qubit gate fidelity
+        # Ưu tiên lấy lỗi cổng X, nếu không có thì lấy RX (Mặc định 0.1%)
+        avg_1q_error = self.single_qubit_gate_errors.get("x", self.single_qubit_gate_errors.get("rx", 0.001))
+        fidelity_1q = (1 - avg_1q_error) ** num_1q
 
-        # Estimate readout fidelity safely
-        avg_readout_error = sum(self.readout_errors) / len(self.readout_errors) if self.readout_errors else 0.01
-        readout_fidelity = (1 - avg_readout_error) ** num_qubits
+        # 2. Two-qubit gate fidelity (CZ hoặc ECR gate)
+        if self.two_qubit_gate_errors:
+            avg_2q_error = sum(self.two_qubit_gate_errors.values()) / len(self.two_qubit_gate_errors)
+        else:
+            avg_2q_error = 0.01  # Fallback 1%
+        fidelity_2q = (1 - avg_2q_error) ** num_2q
 
-        # Combined fidelity
-        estimated_fidelity = single_qubit_fidelity * readout_fidelity
+        # 3. Readout/Measurement fidelity
+        avg_meas_error = sum(self.readout_errors) / len(self.readout_errors) if self.readout_errors else 0.01
+        fidelity_meas = (1 - avg_meas_error) ** num_meas
+
+        # Combined Expected Fidelity = Tích của tất cả các xác suất thành công
+        estimated_fidelity = fidelity_1q * fidelity_2q * fidelity_meas
         
         task.estimated_fidelity = estimated_fidelity
         

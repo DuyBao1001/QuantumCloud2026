@@ -5,17 +5,6 @@ Vi du dung lai cac lop QNode co san trong env_qnodes.py de dung mot kich ban
 3 Datacenter (Near / Mid / Far) minh hoa dung Figure 1 trong thuyet minh de
 tai (Gateway -> Broker -> DC-A/B/C, DC-C dang bao tri -> Failover).
 
-CACH DUNG:
-    1. Copy 4 file: geo_network.py, datacenter.py, cloud_network.py,
-       demo_multi_datacenter.py vao THU MUC GOC cua repo QuantumCloud2026
-       (cung cap voi qnode.py, env_qnodes.py, qtask.py, utility_functions/).
-    2. Dam bao da co san thu muc topology/ (chua cac file *_nodes.json,
-       *_pos.json ma cac lop trong env_qnodes.py doc len) va file calibration
-       CSV ma IBM_QuantumDevice can (xem extract_errors_from_csv trong
-       qnode.py) - day la du lieu da co san trong repo QCloudSim goc, chua
-       thay trong repo hien tai nen script nay se loi neu thieu.
-    3. Chay: python demo_multi_datacenter.py
-
 Script nay CHUA dung den Broker/DRL Agent (Content 3, broker.py con trong) -
 no chi dung de kiem chung khung Datacenter + CloudNetwork hoat dong dung
 truoc khi rap them logic scheduling.
