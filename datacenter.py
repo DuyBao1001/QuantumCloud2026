@@ -51,7 +51,7 @@ class Datacenter:
     def __init__(self, name, env, distance_km, region_tier="mid",
                  qnodes=None, dc_maintenance_interval=None,
                  dc_maintenance_duration=None, intra_dc_latency_fn=None,
-                 printlog=True):
+                 location=None, printlog=True):
         self.name = name
         self.env = env
         self.distance_km = distance_km
@@ -61,6 +61,21 @@ class Datacenter:
         self.dc_maintenance_duration = dc_maintenance_duration
         self.intra_dc_latency_fn = intra_dc_latency_fn
         self.printlog = printlog
+
+        # Vi tri dia ly (US_East / EU_West / AP_South)
+        if location is not None:
+            self.location = location
+        else:
+            tier_l = region_tier.lower()
+            name_l = name.lower()
+            if "near" in tier_l or "a" in name_l:
+                self.location = "US_East"
+            elif "mid" in tier_l or "b" in name_l:
+                self.location = "EU_West"
+            elif "far" in tier_l or "c" in name_l:
+                self.location = "AP_South"
+            else:
+                self.location = "US_East"
 
         # Trang thai san sang cua TOAN BO Datacenter (khac maint_lock tung QNode)
         self.under_maintenance = False
@@ -141,8 +156,11 @@ class Datacenter:
     # ------------------------------------------------------------------ #
     # Network latency (Geo-Network Layer, Content 1)
     # ------------------------------------------------------------------ #
-    def wan_latency(self):
-        """WAN latency: User -> Datacenter Gateway."""
+    def wan_latency(self, user_location: str = None, payload_size_bytes: float = 0):
+        """WAN latency: User -> Datacenter Gateway, tinh theo vi tri user cu the."""
+        if user_location is not None:
+            from geo_network import calculate_wan_latency
+            return calculate_wan_latency(user_location, self, payload_size_bytes=payload_size_bytes)
         from geo_network import propagation_delay
         return propagation_delay(self.distance_km)
 
@@ -153,9 +171,38 @@ class Datacenter:
         from geo_network import default_intra_dc_latency
         return default_intra_dc_latency(self, qnode)
 
-    def estimate_total_network_latency(self, qnode=None):
+    def estimate_total_network_latency(self, qnode=None, user_location: str = None, payload_size_bytes: float = 0):
         """Tong do tre mang end-to-end (WAN + Intra-DC) toi mot QNode cu the."""
-        return self.wan_latency() + self.intra_dc_latency(qnode)
+        return self.wan_latency(user_location, payload_size_bytes) + self.intra_dc_latency(qnode)
+
+    def estimate_queue_delay(self, task=None):
+        """
+        Uoc tinh thoi gian cho trong hang doi tai Datacenter nay (giay/sim-time).
+        - Neu dang bao tri hoac khong co QNode kha dung: vo cung.
+        - Neu co QNode du qubit ranh ngay: queue delay = 0.
+        - Neu phai xep hang: uoc tinh dua tren so task dang cho va so qubit thieu.
+        """
+        if self.under_maintenance:
+            return float("inf")
+        avail_qnodes = self.available_qnodes()
+        if not avail_qnodes:
+            return float("inf")
+
+        needed_qubits = getattr(task, "num_qubits", 1) if task else 1
+        # Neu co bat ky QNode nao con du qubit ranh de chay ngay
+        if any(qn.container.level >= needed_qubits for qn in avail_qnodes):
+            return 0.0
+
+        # Tinh tong so task dang cho tren tat ca cac container cua QNode
+        total_waiting = 0
+        for qn in avail_qnodes:
+            get_q = getattr(qn.container, "get_queue", [])
+            total_waiting += len(get_q)
+            res_q = getattr(getattr(qn, "resource", None), "queue", [])
+            total_waiting += len(res_q)
+
+        # Uoc tinh thoi gian xu ly trung binh moi task ~ 1.5 - 2.0 sim-time units
+        return (total_waiting + 1) * 1.5
 
     def __repr__(self):
         return (f"<Datacenter {self.name} tier={self.region_tier} "

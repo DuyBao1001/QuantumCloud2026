@@ -55,6 +55,37 @@ class CloudNetwork:
     def list_available_datacenters(self):
         return [dc for dc in self.datacenters.values() if dc.is_available()]
 
+    def find_best_datacenter(self, user_location: str, task=None):
+        """
+        Dinh tuyen thong minh: Tim Datacenter toi uu nhat dua tren:
+        Cost = WAN Latency (user_location -> DC) + Queue Delay (tai DC).
+        Tu dong bo qua cac Datacenter dang bao tri toan cuc.
+        Tra ve (best_datacenter, wan_latency, queue_delay).
+        """
+        available_dcs = self.list_available_datacenters()
+        if not available_dcs:
+            return None, float("inf"), float("inf")
+
+        best_dc = None
+        min_total_cost = float("inf")
+        best_wan = 0.0
+        best_queue = 0.0
+
+        payload_size = getattr(task, "payload_size_bytes", 0) if task else 0
+
+        for dc in available_dcs:
+            wan = dc.wan_latency(user_location=user_location, payload_size_bytes=payload_size)
+            queue = dc.estimate_queue_delay(task=task)
+            total_cost = wan + queue
+
+            if total_cost < min_total_cost:
+                min_total_cost = total_cost
+                best_dc = dc
+                best_wan = wan
+                best_queue = queue
+
+        return best_dc, best_wan, best_queue
+
     # ------------------------------------------------------------------ #
     # Failover Mechanism
     # ------------------------------------------------------------------ #

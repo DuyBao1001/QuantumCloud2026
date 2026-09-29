@@ -20,6 +20,67 @@ SPEED_OF_LIGHT_KM_S = 299_792.458
 # He so suy giam van toc lan truyen trong soi quang so voi chan khong (~2/3 c)
 FIBER_VELOCITY_FACTOR = 2 / 3
 
+# Bang khoang cach quang hoc (km) giua cac vung dia ly lon tren the gioi:
+# Dung de tinh toan WAN propagation delay tu User Client toi Datacenter
+GEO_DISTANCE_MATRIX = {
+    # US_East (Vi du: Bac My - Virginia, New York)
+    ("US_East", "US_East"): 80.0,
+    ("US_East", "EU_West"): 6000.0,
+    ("US_East", "AP_South"): 14000.0,
+    
+    # EU_West (Vi du: Tay Au - Frankfurt, London)
+    ("EU_West", "US_East"): 6000.0,
+    ("EU_West", "EU_West"): 100.0,
+    ("EU_West", "AP_South"): 8500.0,
+    
+    # AP_South (Vi du: Chau A - Singapore, Tokyo)
+    ("AP_South", "US_East"): 14000.0,
+    ("AP_South", "EU_West"): 8500.0,
+    ("AP_South", "AP_South"): 120.0,
+}
+
+
+def get_geo_distance(user_loc: str, dc_loc: str, fallback_dist: float = 1000.0) -> float:
+    """
+    Tra ve khoang cach vat ly (km) giua vi tri user va Datacenter.
+    Neu khong tim thay trong matrix, tra ve fallback_dist.
+    """
+    key = (user_loc, dc_loc)
+    if key in GEO_DISTANCE_MATRIX:
+        return GEO_DISTANCE_MATRIX[key]
+    reverse_key = (dc_loc, user_loc)
+    if reverse_key in GEO_DISTANCE_MATRIX:
+        return GEO_DISTANCE_MATRIX[reverse_key]
+    if user_loc == dc_loc:
+        return 100.0
+    return fallback_dist
+
+
+def calculate_wan_latency(user_location: str, datacenter, payload_size_bytes: float = 0,
+                          bandwidth_bps: float = 1e9, velocity_factor: float = FIBER_VELOCITY_FACTOR) -> float:
+    """
+    Tinh toan toan bo do tre WAN (Propagation delay + Payload transmission delay)
+    tu user_location toi Datacenter (tra ve giay).
+    """
+    dc_location = getattr(datacenter, "location", None)
+    if not dc_location:
+        # Fallback suy dien dua tren tier hoac name
+        tier = getattr(datacenter, "region_tier", "").lower()
+        name_lower = getattr(datacenter, "name", "").lower()
+        if "near" in tier or "a" in name_lower:
+            dc_location = "US_East"
+        elif "mid" in tier or "b" in name_lower:
+            dc_location = "EU_West"
+        elif "far" in tier or "c" in name_lower:
+            dc_location = "AP_South"
+        else:
+            dc_location = getattr(datacenter, "name", "US_East")
+
+    dist_km = get_geo_distance(user_location, dc_location, fallback_dist=getattr(datacenter, "distance_km", 1000.0))
+    prop_delay = propagation_delay(dist_km, velocity_factor)
+    trans_delay = payload_transmission_time(payload_size_bytes, bandwidth_bps) if payload_size_bytes > 0 else 0.0
+    return prop_delay + trans_delay
+
 
 def propagation_delay(distance_km: float, velocity_factor: float = FIBER_VELOCITY_FACTOR) -> float:
     """
