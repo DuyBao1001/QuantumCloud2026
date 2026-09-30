@@ -72,6 +72,17 @@ QuantumCloud2026/
   - Mới chỉ kiểm tra hoạt động của tầng Topology mạng + Trạng thái bảo trì Datacenter.
   - **Chưa bơm QTask** từ `task_generator.py` và **chưa tích hợp luồng điều phối của Broker**.
 
+### 2.5. `qnode.py` (Mô hình QPU & Hàm ước lượng Fidelity mới cập nhật)
+- **Cơ chế `estimate_fidelity(self, task)` (Vừa cập nhật):**
+  - **Khớp hoàn hảo với `task_generator.py`:** Tự động trích xuất các thông số cổng từ `task.gates` gồm số lượng cổng đơn qubit (`1q_gates`), cổng hai qubit (`2q_gates`), và số phép đo (`measurements`).
+  - **Mô hình tính toán xác suất tích lũy (Cumulative Expected Fidelity):**
+    $$F_{\text{total}} = F_{\text{1q}} \times F_{\text{2q}} \times F_{\text{meas}} = (1 - \epsilon_{\text{1q}})^{N_{\text{1q}}} \times (1 - \bar{\epsilon}_{\text{2q}})^{N_{\text{2q}}} \times (1 - \bar{\epsilon}_{\text{meas}})^{N_{\text{meas}}}$$
+    - $\epsilon_{\text{1q}}$: Lấy từ tỷ lệ lỗi thực tế của cổng Pauli-X / RX trong file CSV calibration của IBM (trung bình $\sim 0.1\%$).
+    - $\bar{\epsilon}_{\text{2q}}$: Lấy trung bình cộng lỗi của tất cả các cặp cổng vướng víu 2-qubit (ECR/CZ) trên chip (nguồn gây nhiễu lớn nhất $\sim 1\%$).
+    - $\bar{\epsilon}_{\text{meas}}$: Lấy trung bình cộng từ danh sách `Readout assignment error` của từng qubit trên chip.
+  - **Cơ chế Fallback thông minh:** Nếu gặp task cũ hoặc task chưa bóc tách profile cổng, tự động ước tính theo $\text{depth} \times \text{num\_qubits}$ để đảm bảo không bao giờ bị gián đoạn hay crash code.
+  - **Tự động lưu vết & Log:** Gán trực tiếp giá trị vào `task.estimated_fidelity` và ghi log vào `task_records_manager` để cung cấp dữ liệu tức thì cho hàm Reward của DRL Agent.
+
 ---
 
 ## 3. Tiến độ Phần Môi trường AI (DRL) trong `env_qnodes.py`
@@ -91,35 +102,34 @@ QuantumCloud2026/
 
 ## 4. Bảng Phân loại Tiến độ Chi tiết
 
-### 4.1. Các phần việc ĐÃ HOÀN THÀNH (Done - ~60% toàn dự án)
+### 4.1. Các phần việc ĐÃ HOÀN THÀNH (Done - ~75% toàn dự án)
 1. **Khung mô phỏng Discrete-Event SimPy:**
    - Xây dựng thành công `QTask`, `BaseQNode`, `QuantumDevice`, `IBM_QuantumDevice`.
-   - Cơ chế quản lý qubit bằng `simpy.Container`, khóa bảo trì `maint_lock`, và tính toán thời gian chạy phần cứng QPU theo công thức CLOPS, số shots, Quantum Volume và depth.
+   - Quản lý tài nguyên qubit bằng `simpy.Container`, khóa bảo trì `maint_lock`, và tính toán thời gian chạy phần cứng QPU theo công thức CLOPS, số shots, Quantum Volume và depth.
 2. **Trích xuất thông số lỗi phần cứng (IBM Calibration):**
-   - Đọc dữ liệu từ file CSV calibration để trích xuất tỷ lệ lỗi cổng đơn qubit (`rx`, `x`), cổng 2-qubit (`cz`, `ecr`), và `readout_errors`.
-3. **Mô hình Mạng Multi-Datacenter & Độ trễ (Network Layer):**
+   - Đọc dữ liệu từ file CSV calibration thực tế của IBM để trích xuất tỷ lệ lỗi cổng đơn qubit (`rx`, `x`), cổng 2-qubit (`cz`, `ecr`), và `readout_errors`.
+3. **Ước lượng độ trung thực mạch lượng tử (`estimate_fidelity` trong `qnode.py`):**
+   - **Đã hoàn thành 100%:** Bạn trong team vừa hoàn thiện hàm tính toán Fidelity tích hợp lỗi cổng 1Q, 2Q, readout và phân loại cổng từ `task_generator.py`.
+4. **Mô hình Mạng Multi-Datacenter & Độ trễ (Network Layer):**
    - Hoàn thiện `Datacenter`, `CloudNetwork`, `geo_network.py`.
    - Tính toán đầy đủ độ trễ vật lý WAN theo vận tốc ánh sáng trong cáp quang ($\approx \frac{2}{3} c$), độ trễ chuyển mạch nội bộ Intra-DC, độ trễ hàng đợi và cơ chế chuyển vùng dự phòng (Failover).
-4. **Bộ sinh tác vụ lượng tử chuẩn QAISim (`task_generator.py`):**
+5. **Bộ sinh tác vụ lượng tử chuẩn QAISim (`task_generator.py`):**
    - Hoàn chỉnh 100% với tích hợp MQTBench, Synthetic Gate classification, Geo-aware user location, QoS Deadline SLA penalty, và Pluggable traffic arrivals (Poisson/MMPP).
-5. **Thuật toán Đồ thị Không gian (Spatial Multi-programming Base):**
+6. **Thuật toán Đồ thị Không gian (Spatial Multi-programming Base):**
    - Module `utility_functions/graph_manipulation.py` đã có các thuật toán tìm đồ thị con liên thông (`select_vertices`), ngắt kết nối (`remove_connectivity`) và phục hồi đồ thị (`reconnect_nodes`).
-6. **Bộ điều phối tác vụ thông minh (`broker.py`):**
+7. **Bộ điều phối tác vụ thông minh (`broker.py`):**
    - Đã **xóa sổ hoàn toàn `random.choice`**.
    - Cài đặt cơ chế định tuyến 2 tầng: Tầng 1 chọn Datacenter tối ưu dựa trên tổng thời gian ($\text{WAN Latency} + \text{Queue Delay}$), tự động failover khi DC bảo trì; Tầng 2 chọn QNode theo giải thuật Best-Fit tối ưu qubit rảnh và CLOPS.
+8. **Kịch bản mô phỏng tích hợp toàn diện End-to-End (`demo_multi_datacenter.py`):**
+   - **Đã hoàn thành 100%:** Kết nối mượt mà `TaskGenerator` -> `ParallelBroker` -> Mạng 3 Datacenter (`US_East`, `EU_West`, `AP_South`) -> 4 chip QPU thực tế (`Marrakesh`, `Fez`, `Torino`, `Quebec`).
+   - Tự động xuất bảng tổng kết KPI toàn diện: Makespan, Turnaround Time, Trễ WAN, Fidelity, Tỷ lệ vi phạm Deadline SLA, và Thống kê bảo trì / Failover.
 
 ---
 
 ### 4.2. Các phần việc ĐANG DỞ DANG / CẦN THỰC HIỆN TIẾP (In Progress / Pending)
 
-1. **Hàm ước lượng độ trung thực `estimate_fidelity()` trong `qnode.py`:**
-   - *Hiện trạng:* Phương thức `estimate_fidelity(self, task)` tại dòng 211 trong `qnode.py` mới chỉ có từ khóa `pass`.
-   - *Cần làm:* Lấy thông tin `task.gates` từ `task_generator.py` nhân với các tỷ lệ lỗi trích xuất từ file calibration CSV để tính ra giá trị Fidelity $F \in [0, 1]$.
-2. **Xây dựng Môi trường Gymnasium (`QuantumCloudEnv`):**
+1. **Xây dựng Môi trường Gymnasium (`QuantumCloudEnv`):**
    - *Hiện trạng:* Chưa có code (xem mục 3).
    - *Cần làm:* Thiết kế class kế thừa `gymnasium.Env`, cài đặt `reset()` (reset SimPy env, khởi tạo batch tasks), `step(action)` (thực hiện action điều phối, bước SimPy tiến tới sự kiện tiếp theo, trả về state, multi-objective reward, done, info).
-3. **Kịch bản tích hợp End-to-End (`demo_multi_datacenter.py`):**
-   - *Hiện trạng:* Mới chỉ test topology và failover Datacenter tĩnh, chưa chạy task qua Broker.
-   - *Cần làm:* Kết nối `TaskGenerator` bắn task vào `Broker`, Broker gán task xuống các QNode trong các Datacenter, QNode xử lý đồng thời (multi-programming), đo đạc tổng Makespan, Average Turnaround Time, và Tỷ lệ vi phạm SLA.
-4. **Dữ liệu Topology:**
+2. **Dữ liệu Topology:**
    - Đảm bảo trong thư mục dự án có đầy đủ các file JSON topology (`*_nodes.json`, `*_pos.json`) mà các class trong `env_qnodes.py` cần khi khởi tạo thiết bị.

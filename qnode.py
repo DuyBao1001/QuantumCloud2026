@@ -179,6 +179,7 @@ class QuantumDevice(BaseQNode):
         task.start_time = self.env.now
         task.assigned_device = self.name
         task.assigned_qubits = list(selected_vertices)
+        self.estimate_fidelity(task)
         
         process_time = self.calculate_process_time(task)
         if self.printlog:
