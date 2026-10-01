@@ -85,31 +85,32 @@ QuantumCloud2026/
 
 ---
 
-## 3. Tiến độ Phần Môi trường AI (DRL) trong `env_qnodes.py`
+## 3. Tiến độ Phần Môi trường AI (DRL) trong `qcloud_env.py`
 
 | Tiêu chí | Trạng thái | Chi tiết đánh giá |
 | :--- | :---: | :--- |
-| **Kế thừa `gymnasium.Env`** | ❌ **CHƯA CÓ** | File hiện tại **chưa hề** import `gymnasium` hay định nghĩa lớp Gym Environment nào. |
-| **Phương thức `reset()`** | ❌ **CHƯA CÓ** | Chưa được lập trình. |
-| **Phương thức `step(action)`** | ❌ **CHƯA CÓ** | Chưa được lập trình. |
-| **Định nghĩa `observation_space`** | ❌ **CHƯA CÓ** | Chưa thiết kế không gian trạng thái (State vector biểu diễn hàng đợi, tải DC, topology QPU). |
-| **Định nghĩa `action_space`** | ❌ **CHƯA CÓ** | Chưa thiết kế không gian hành động phân cấp $A_t = (a_{dc}, a_{node}, a_{subgraph})$. |
-| **Nội dung thực tế hiện có** | ⚠️ **Chỉ là danh mục phần cứng** | File hiện tại dài 513 dòng nhưng **100% nội dung là định nghĩa các lớp thiết bị QPU cụ thể** kế thừa từ `QuantumDevice` / `IBM_QuantumDevice` (như `IBM_guadalupe`, `IBM_tokyo`, `IBM_montreal`, `Google_sycamore`, `Chimera_dwave`...). |
+| **Kế thừa `gymnasium.Env`** | ✅ **HOÀN THÀNH** | Tạo lớp `QuantumCloudEnv(gym.Env)` chuẩn API Gymnasium. |
+| **Phương thức `reset()`** | ✅ **HOÀN THÀNH** | Khởi động lại SimPy discrete-event core, nạp workload từ JSON (hoặc tự sinh batch RAM), trả về state vector và info. |
+| **Phương thức `step(action)`** | ✅ **HOÀN THÀNH** | Tiếp nhận hành động chọn Datacenter, kích hoạt pipeline thực thi QNode, an toàn bước đồng hồ SimPy, trả về multi-objective reward. |
+| **Định nghĩa `observation_space`** | ✅ **HOÀN THÀNH** | Vector 13 chiều (One-hot location, qubits, trạng thái bảo trì DC, trễ WAN ms, số qubit rảnh). |
+| **Định nghĩa `action_space`** | ✅ **HOÀN THÀNH** | `spaces.Discrete(3)` ứng với 3 Datacenter (US_East, EU_West, AP_South). |
+| **Action Masking Mechanism** | ✅ **HOÀN THÀNH** | Cung cấp phương thức `action_masks()` cho MaskablePPO để chặn chọn DC bảo trì. |
+| **Multi-Objective Reward** | ✅ **HOÀN THÀNH** | Hàm scalarized reward cân bằng Fidelity, WAN latency, Queue delay, và SLA penalty. |
 
-> **Kết luận phần DRL:** Môi trường Reinforcement Learning hiện tại đang ở mức **0%**. Cần sớm xây dựng một lớp môi trường Gymnasium riêng (ví dụ đặt tên là `QuantumCloudEnv` trong `env_qnodes.py` hoặc tạo file mới `qcloud_env.py`) để làm cầu nối giữa SimPy và các thuật toán DRL (PPO/SAC/DQN).
+> **Kết luận phần DRL:** Môi trường Reinforcement Learning hiện tại đã đạt **100% hoàn thiện** trong file `qcloud_env.py`, sẵn sàng đưa vào các thuật toán PPO / SAC / DQN để huấn luyện mô hình.
 
 ---
 
 ## 4. Bảng Phân loại Tiến độ Chi tiết
 
-### 4.1. Các phần việc ĐÃ HOÀN THÀNH (Done - ~75% toàn dự án)
+### 4.1. Các phần việc ĐÃ HOÀN THÀNH (Done - ~90% toàn dự án)
 1. **Khung mô phỏng Discrete-Event SimPy:**
    - Xây dựng thành công `QTask`, `BaseQNode`, `QuantumDevice`, `IBM_QuantumDevice`.
    - Quản lý tài nguyên qubit bằng `simpy.Container`, khóa bảo trì `maint_lock`, và tính toán thời gian chạy phần cứng QPU theo công thức CLOPS, số shots, Quantum Volume và depth.
 2. **Trích xuất thông số lỗi phần cứng (IBM Calibration):**
    - Đọc dữ liệu từ file CSV calibration thực tế của IBM để trích xuất tỷ lệ lỗi cổng đơn qubit (`rx`, `x`), cổng 2-qubit (`cz`, `ecr`), và `readout_errors`.
 3. **Ước lượng độ trung thực mạch lượng tử (`estimate_fidelity` trong `qnode.py`):**
-   - **Đã hoàn thành 100%:** Bạn trong team vừa hoàn thiện hàm tính toán Fidelity tích hợp lỗi cổng 1Q, 2Q, readout và phân loại cổng từ `task_generator.py`.
+   - Hoàn thành 100%: Tích hợp công thức tính Fidelity từ lỗi cổng 1Q, 2Q, readout và phân loại cổng từ `task_generator.py`.
 4. **Mô hình Mạng Multi-Datacenter & Độ trễ (Network Layer):**
    - Hoàn thiện `Datacenter`, `CloudNetwork`, `geo_network.py`.
    - Tính toán đầy đủ độ trễ vật lý WAN theo vận tốc ánh sáng trong cáp quang ($\approx \frac{2}{3} c$), độ trễ chuyển mạch nội bộ Intra-DC, độ trễ hàng đợi và cơ chế chuyển vùng dự phòng (Failover).
@@ -118,18 +119,20 @@ QuantumCloud2026/
 6. **Thuật toán Đồ thị Không gian (Spatial Multi-programming Base):**
    - Module `utility_functions/graph_manipulation.py` đã có các thuật toán tìm đồ thị con liên thông (`select_vertices`), ngắt kết nối (`remove_connectivity`) và phục hồi đồ thị (`reconnect_nodes`).
 7. **Bộ điều phối tác vụ thông minh (`broker.py`):**
-   - Đã **xóa sổ hoàn toàn `random.choice`**.
+   - Đã xóa sổ hoàn toàn `random.choice`.
    - Cài đặt cơ chế định tuyến 2 tầng: Tầng 1 chọn Datacenter tối ưu dựa trên tổng thời gian ($\text{WAN Latency} + \text{Queue Delay}$), tự động failover khi DC bảo trì; Tầng 2 chọn QNode theo giải thuật Best-Fit tối ưu qubit rảnh và CLOPS.
 8. **Kịch bản mô phỏng tích hợp toàn diện End-to-End (`demo_multi_datacenter.py`):**
-   - **Đã hoàn thành 100%:** Kết nối mượt mà `TaskGenerator` -> `ParallelBroker` -> Mạng 3 Datacenter (`US_East`, `EU_West`, `AP_South`) -> 4 chip QPU thực tế (`Marrakesh`, `Fez`, `Torino`, `Quebec`).
+   - Hoàn thành 100%: Kết nối mượt mà `TaskGenerator` -> `ParallelBroker` -> Mạng 3 Datacenter (`US_East`, `EU_West`, `AP_South`) -> 4 chip QPU thực tế (`Marrakesh`, `Fez`, `Torino`, `Quebec`).
    - Tự động xuất bảng tổng kết KPI toàn diện: Makespan, Turnaround Time, Trễ WAN, Fidelity, Tỷ lệ vi phạm Deadline SLA, và Thống kê bảo trì / Failover.
+9. **Môi trường Gymnasium DRL (`qcloud_env.py`):**
+   - Đã xây dựng hoàn thiện lớp `QuantumCloudEnv` với đầy đủ `reset`, `step`, vector trạng thái 13 chiều, `action_masks()`, chống lỗi lệch pha SimPy clock và cơ chế phạt đa mục tiêu.
 
 ---
 
 ### 4.2. Các phần việc ĐANG DỞ DANG / CẦN THỰC HIỆN TIẾP (In Progress / Pending)
 
-1. **Xây dựng Môi trường Gymnasium (`QuantumCloudEnv`):**
-   - *Hiện trạng:* Chưa có code (xem mục 3).
-   - *Cần làm:* Thiết kế class kế thừa `gymnasium.Env`, cài đặt `reset()` (reset SimPy env, khởi tạo batch tasks), `step(action)` (thực hiện action điều phối, bước SimPy tiến tới sự kiện tiếp theo, trả về state, multi-objective reward, done, info).
+1. **Huấn luyện Mô hình DRL (Agent Training):**
+   - Sử dụng Stable-Baselines3 (PPO hoặc MaskablePPO) để train Agent trên `QuantumCloudEnv`.
+   - So sánh đường cong học (Reward learning curve) và các metric (Makespan, Fidelity, Latency) với các Heuristic baseline (Greedy, Random, Round-Robin).
 2. **Dữ liệu Topology:**
-   - Đảm bảo trong thư mục dự án có đầy đủ các file JSON topology (`*_nodes.json`, `*_pos.json`) mà các class trong `env_qnodes.py` cần khi khởi tạo thiết bị.
+   - Đảm bảo trong thư mục dự án có đầy đủ các file JSON topology (`*_nodes.json`, `*_pos.json`) nếu muốn mở rộng thêm nhiều chip QPU khác ngoài 4 chip hiện tại.

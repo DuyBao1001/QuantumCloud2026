@@ -365,149 +365,149 @@ class IBM_Strasbourg(IBM_QuantumDevice):
         
         
         
-class Amazon_dwave(QuantumDevice):
-    """
-    The D-Wave QPU is a lattice of interconnected qubits. While some qubits connect to others via couplers, the D-Wave QPU is not fully connected. Instead, the qubits of D-Wave annealing quantum computers interconnect in one of the following topologies:
+# class Amazon_dwave(QuantumDevice):
+#     """
+#     The D-Wave QPU is a lattice of interconnected qubits. While some qubits connect to others via couplers, the D-Wave QPU is not fully connected. Instead, the qubits of D-Wave annealing quantum computers interconnect in one of the following topologies:
 
-    Pegasus: 14-1026 Next-Generation Topology of D-Wave Quantum Processors
-    https://www.dwavesys.com/media/jwwj5z3z/14-1026a-c_next-generation-topology-of-dw-quantum-processors.pdf?_gl=1*sl9028*_gcl_au*NDI1MTIwMzY4LjE3MjI1NDgzNTk.*_ga*OTk3MzI5MzA0LjE3MjI1NDgzNTk.*_ga_DXNKH9HE3W*MTcyMjU3MDMwOC4yLjEuMTcyMjU3MDM3Ni42MC4wLjA.
+#     Pegasus: 14-1026 Next-Generation Topology of D-Wave Quantum Processors
+#     https://www.dwavesys.com/media/jwwj5z3z/14-1026a-c_next-generation-topology-of-dw-quantum-processors.pdf?_gl=1*sl9028*_gcl_au*NDI1MTIwMzY4LjE3MjI1NDgzNTk.*_ga*OTk3MzI5MzA0LjE3MjI1NDgzNTk.*_ga_DXNKH9HE3W*MTcyMjU3MDMwOC4yLjEuMTcyMjU3MDM3Ni42MC4wLjA.
 
-    Zephyr: 14-1056 Zephyr Topology of D-Wave Quantum Processors
-    https://www.dwavesys.com/media/2uznec4s/14-1056a-a_zephyr_topology_of_d-wave_quantum_processors.pdf?_gl=1*sl9028*_gcl_au*NDI1MTIwMzY4LjE3MjI1NDgzNTk.*_ga*OTk3MzI5MzA0LjE3MjI1NDgzNTk.*_ga_DXNKH9HE3W*MTcyMjU3MDMwOC4yLjEuMTcyMjU3MDM3Ni42MC4wLjA.
+#     Zephyr: 14-1056 Zephyr Topology of D-Wave Quantum Processors
+#     https://www.dwavesys.com/media/2uznec4s/14-1056a-a_zephyr_topology_of_d-wave_quantum_processors.pdf?_gl=1*sl9028*_gcl_au*NDI1MTIwMzY4LjE3MjI1NDgzNTk.*_ga*OTk3MzI5MzA0LjE3MjI1NDgzNTk.*_ga_DXNKH9HE3W*MTcyMjU3MDMwOC4yLjEuMTcyMjU3MDM3Ni42MC4wLjA.
 
-    Source: https://docs.dwavesys.com/docs/latest/c_gs_4.html
-    """
-    def __init__(self, env, name=None, printlog=True):     
+#     Source: https://docs.dwavesys.com/docs/latest/c_gs_4.html
+#     """
+#     def __init__(self, env, name=None, printlog=True):     
         
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Amazon_dwave_nodes.json', 
-                         pos_file_name = 'Amazon_dwave_pos.json', 
-                         env = env, 
-                         maintenance_interval = 140, 
-                         maintenance_duration = 25, 
-                         maintenance_switch = False,
-                         printlog=printlog)     
-        
-        
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Amazon_dwave_nodes.json', 
+#                          pos_file_name = 'Amazon_dwave_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 140, 
+#                          maintenance_duration = 25, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)     
         
         
-class Chimera_dwave_72(QuantumDevice):
-    """
-    The Chimera topology is a specific layout of qubits used in D-Wave quantum annealers. It is designed to optimize the interconnectivity between qubits while maintaining a scalable and manufacturable architecture [1]. 
+        
+        
+# class Chimera_dwave_72(QuantumDevice):
+#     """
+#     The Chimera topology is a specific layout of qubits used in D-Wave quantum annealers. It is designed to optimize the interconnectivity between qubits while maintaining a scalable and manufacturable architecture [1]. 
 
-    Reference: [1] Ayanzadeh, Ramin & Mousavi, Ahmad & Halem, Milton & Finin, Tim. (2018). Quantum Annealing Based Binary Compressive Sensing with Matrix Uncertainty. 
+#     Reference: [1] Ayanzadeh, Ramin & Mousavi, Ahmad & Halem, Milton & Finin, Tim. (2018). Quantum Annealing Based Binary Compressive Sensing with Matrix Uncertainty. 
 
-    Source: https://www.researchgate.net/figure/Chimera-Topology-in-D-Wave-Quantum-Annealers_fig1_330102244
+#     Source: https://www.researchgate.net/figure/Chimera-Topology-in-D-Wave-Quantum-Annealers_fig1_330102244
     
-    """
+#     """
     
-    def __init__(self, env, name=None, printlog=True):
+#     def __init__(self, env, name=None, printlog=True):
 
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Chimera_dwave_72_nodes.json', 
-                         pos_file_name = 'Chimera_dwave_72_pos.json', 
-                         env = env, 
-                         maintenance_interval = 200, 
-                         maintenance_duration = 25, 
-                         maintenance_switch = False,
-                         printlog=printlog)     
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Chimera_dwave_72_nodes.json', 
+#                          pos_file_name = 'Chimera_dwave_72_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 200, 
+#                          maintenance_duration = 25, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)     
    
   
 
-class Chimera_dwave_128(QuantumDevice):
-    """
+# class Chimera_dwave_128(QuantumDevice):
+#     """
 
-    The Chimera topology is a specific layout of qubits used in D-Wave quantum annealers. It is designed to optimize the interconnectivity between qubits while maintaining a scalable and manufacturable architecture [1]. 
+#     The Chimera topology is a specific layout of qubits used in D-Wave quantum annealers. It is designed to optimize the interconnectivity between qubits while maintaining a scalable and manufacturable architecture [1]. 
 
-    Reference: [1] Ayanzadeh, Ramin & Mousavi, Ahmad & Halem, Milton & Finin, Tim. (2018). Quantum Annealing Based Binary Compressive Sensing with Matrix Uncertainty. 
+#     Reference: [1] Ayanzadeh, Ramin & Mousavi, Ahmad & Halem, Milton & Finin, Tim. (2018). Quantum Annealing Based Binary Compressive Sensing with Matrix Uncertainty. 
 
-    Source: https://www.researchgate.net/figure/Chimera-Topology-in-D-Wave-Quantum-Annealers_fig1_330102244
+#     Source: https://www.researchgate.net/figure/Chimera-Topology-in-D-Wave-Quantum-Annealers_fig1_330102244
     
-    """
+#     """
     
-    def __init__(self, env, name=None, printlog=True):
+#     def __init__(self, env, name=None, printlog=True):
 
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Chimera_dwave_128_nodes.json', 
-                         pos_file_name = 'Chimera_dwave_128_pos.json', 
-                         env = env, 
-                         maintenance_interval = 250, 
-                         maintenance_duration = 40, 
-                         maintenance_switch = False,
-                         printlog=printlog)     
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Chimera_dwave_128_nodes.json', 
+#                          pos_file_name = 'Chimera_dwave_128_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 250, 
+#                          maintenance_duration = 40, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)     
         
         
                
-class Amazon_rigetti(QuantumDevice):
-    """
-    The Rigetti quantum computer is one of the quantum processing units (QPUs) available through Amazon Braket, AWS's quantum computing service. The Rigetti QPUs use superconducting qubits, which are a popular choice for building quantum computers due to their scalability and relatively high coherence times. 
+# class Amazon_rigetti(QuantumDevice):
+#     """
+#     The Rigetti quantum computer is one of the quantum processing units (QPUs) available through Amazon Braket, AWS's quantum computing service. The Rigetti QPUs use superconducting qubits, which are a popular choice for building quantum computers due to their scalability and relatively high coherence times. 
 
-    References: 
-    Amazon Braket - Quantum Computers https://aws.amazon.com/braket/
-    Rigetti Computing - Quantum Cloud Services https://docs.rigetti.com/qcs
-    Amazon Braket – Go Hands-On with Quantum Computing https://aws.amazon.com/blogs/aws/amazon-braket-go-hands-on-with-quantum-computing/
+#     References: 
+#     Amazon Braket - Quantum Computers https://aws.amazon.com/braket/
+#     Rigetti Computing - Quantum Cloud Services https://docs.rigetti.com/qcs
+#     Amazon Braket – Go Hands-On with Quantum Computing https://aws.amazon.com/blogs/aws/amazon-braket-go-hands-on-with-quantum-computing/
 
-    """
-    def __init__(self, env, name=None, printlog=True):
+#     """
+#     def __init__(self, env, name=None, printlog=True):
 
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Amazon_rigetti_nodes.json', 
-                         pos_file_name = 'Amazon_rigetti_pos.json', 
-                         env = env, 
-                         maintenance_interval = 250, 
-                         maintenance_duration = 40, 
-                         maintenance_switch = False,
-                         printlog=printlog)     
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Amazon_rigetti_nodes.json', 
+#                          pos_file_name = 'Amazon_rigetti_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 250, 
+#                          maintenance_duration = 40, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)     
         
         
                
-class Google_sycamore(QuantumDevice):
-    """
-    The Sycamore quantum computer is a quantum processor developed by Google AI Quantum. The Sycamore processor uses superconducting qubits arranged in a two-dimensional grid. Each qubit is connected to four nearest neighbors, which allows for high connectivity and complex interactions needed for quantum computations.
+# class Google_sycamore(QuantumDevice):
+#     """
+#     The Sycamore quantum computer is a quantum processor developed by Google AI Quantum. The Sycamore processor uses superconducting qubits arranged in a two-dimensional grid. Each qubit is connected to four nearest neighbors, which allows for high connectivity and complex interactions needed for quantum computations.
 
-    The processor utilizes a combination of single-qubit and two-qubit gates to perform quantum operations. The fidelity (accuracy) of these gates is crucial for the performance of the quantum computer, with single-qubit gate fidelities exceeding 99.9% and two-qubit gate fidelities around 99.4% [1].
+#     The processor utilizes a combination of single-qubit and two-qubit gates to perform quantum operations. The fidelity (accuracy) of these gates is crucial for the performance of the quantum computer, with single-qubit gate fidelities exceeding 99.9% and two-qubit gate fidelities around 99.4% [1].
 
-    The Sycamore quantum computer leverages transmon qubits, which can be considered as nonlinear superconducting resonators functioning at 5 to 7 GHz. The quantum bits are encoded as the resonant circuit’s two lowest quantum eigenstates. 
+#     The Sycamore quantum computer leverages transmon qubits, which can be considered as nonlinear superconducting resonators functioning at 5 to 7 GHz. The quantum bits are encoded as the resonant circuit’s two lowest quantum eigenstates. 
 
-    Reference: [1] AbuGhanem, M., Eleuch, H. Full quantum tomography study of Google’s Sycamore gate on IBM’s quantum computers. EPJ Quantum Technol. 11, 36 (2024). https://doi.org/10.1140/epjqt/s40507-024-00248-8
+#     Reference: [1] AbuGhanem, M., Eleuch, H. Full quantum tomography study of Google’s Sycamore gate on IBM’s quantum computers. EPJ Quantum Technol. 11, 36 (2024). https://doi.org/10.1140/epjqt/s40507-024-00248-8
 
-    Source: https://epjquantumtechnology.springeropen.com/articles/10.1140/epjqt/s40507-024-00248-8
-    """
+#     Source: https://epjquantumtechnology.springeropen.com/articles/10.1140/epjqt/s40507-024-00248-8
+#     """
     
-    def __init__(self, env, name=None, printlog=True):
+#     def __init__(self, env, name=None, printlog=True):
 
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Google_sycamore_nodes.json', 
-                         pos_file_name = 'Google_sycamore_pos.json', 
-                         env = env, 
-                         maintenance_interval = 150, 
-                         maintenance_duration = 20, 
-                         maintenance_switch = False,
-                         printlog=printlog)    
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Google_sycamore_nodes.json', 
+#                          pos_file_name = 'Google_sycamore_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 150, 
+#                          maintenance_duration = 20, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)    
 
 
-class Google_sycamore_53(QuantumDevice):
-    """
-    The Sycamore 
-    quantum computer is a quantum processor developed by Google AI Quantum. The Sycamore processor uses superconducting qubits arranged in a two-dimensional grid. Each qubit is connected to four nearest neighbors, which allows for high connectivity and complex interactions needed for quantum computations.
+# class Google_sycamore_53(QuantumDevice):
+#     """
+#     The Sycamore 
+#     quantum computer is a quantum processor developed by Google AI Quantum. The Sycamore processor uses superconducting qubits arranged in a two-dimensional grid. Each qubit is connected to four nearest neighbors, which allows for high connectivity and complex interactions needed for quantum computations.
 
-    The processor utilizes a combination of single-qubit and two-qubit gates to perform quantum operations. The fidelity (accuracy) of these gates is crucial for the performance of the quantum computer, with single-qubit gate fidelities exceeding 99.9% and two-qubit gate fidelities around 99.4% [1].
+#     The processor utilizes a combination of single-qubit and two-qubit gates to perform quantum operations. The fidelity (accuracy) of these gates is crucial for the performance of the quantum computer, with single-qubit gate fidelities exceeding 99.9% and two-qubit gate fidelities around 99.4% [1].
 
-    The Sycamore quantum computer leverages transmon qubits, which can be considered as nonlinear superconducting resonators functioning at 5 to 7 GHz. The quantum bits are encoded as the resonant circuit’s two lowest quantum eigenstates. 
+#     The Sycamore quantum computer leverages transmon qubits, which can be considered as nonlinear superconducting resonators functioning at 5 to 7 GHz. The quantum bits are encoded as the resonant circuit’s two lowest quantum eigenstates. 
 
-    Reference: [1] AbuGhanem, M., Eleuch, H. Full quantum tomography study of Google’s Sycamore gate on IBM’s quantum computers. EPJ Quantum Technol. 11, 36 (2024). https://doi.org/10.1140/epjqt/s40507-024-00248-8
+#     Reference: [1] AbuGhanem, M., Eleuch, H. Full quantum tomography study of Google’s Sycamore gate on IBM’s quantum computers. EPJ Quantum Technol. 11, 36 (2024). https://doi.org/10.1140/epjqt/s40507-024-00248-8
 
-    Source: https://epjquantumtechnology.springeropen.com/articles/10.1140/epjqt/s40507-024-00248-8
-    """
+#     Source: https://epjquantumtechnology.springeropen.com/articles/10.1140/epjqt/s40507-024-00248-8
+#     """
     
-    def __init__(self, env, name=None, printlog=True):
+#     def __init__(self, env, name=None, printlog=True):
 
-        super().__init__(name = name if name else __class__.__name__ , 
-                         nodes_file_name = 'Google_sycamore_53_nodes.json', 
-                         pos_file_name = 'Google_sycamore_53_pos.json', 
-                         env = env, 
-                         maintenance_interval = 140, 
-                         maintenance_duration = 25, 
-                         maintenance_switch = False,
-                         printlog=printlog)    
+#         super().__init__(name = name if name else __class__.__name__ , 
+#                          nodes_file_name = 'Google_sycamore_53_nodes.json', 
+#                          pos_file_name = 'Google_sycamore_53_pos.json', 
+#                          env = env, 
+#                          maintenance_interval = 140, 
+#                          maintenance_duration = 25, 
+#                          maintenance_switch = False,
+#                          printlog=printlog)    
         

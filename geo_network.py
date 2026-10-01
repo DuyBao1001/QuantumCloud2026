@@ -146,7 +146,7 @@ def total_end_to_end_latency(datacenter, qnode=None, queue_length: int = 0,
     `datacenter` phai co thuoc tinh `distance_km` va phuong thuc
     `intra_dc_latency(qnode)` (xem class Datacenter trong datacenter.py).
     """
-    total = propagation_delay(datacenter.distance_km)
+    # total = propagation_delay(datacenter.distance_km)
     total += datacenter.intra_dc_latency(qnode)
     if service_rate_per_sec is not None:
         total += queuing_delay(queue_length, service_rate_per_sec)

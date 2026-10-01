@@ -11,3 +11,4 @@ types-tensorflow
 tqdm
 pytest
 mypy
+mqt.bench
