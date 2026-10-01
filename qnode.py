@@ -245,13 +245,14 @@ class IBM_QuantumDevice(QuantumDevice):
     def calculate_process_time(self, task):
         """
         Calculate processing time considering IBM-specific metrics.
+        Returns time in SECONDS to sync with WAN latency in geo_network.py.
         """
         M = 100
         K = 10
         S = task.num_shots
         D = math.log2(self.qvol)
 
-        return  M * K * S * D / self.clops / 60
+        return (M * K * S * D) / self.clops
     
     def extract_errors_from_csv(self):
         """
